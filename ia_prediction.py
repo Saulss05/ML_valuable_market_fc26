@@ -42,7 +42,11 @@ df['nation_bonus'] = df['nationality_name'].apply(lambda x: nations_premium.get(
 df['league_strength'] = 5 - df['league_level']
 
 # Sélection des colonnes finales pour l'IA
-features = ['overall', 'potential', 'age', 'position_score', 'nation_bonus', 'league_strength']
+# 1. On crée la variable boostée (l'écart devient exponentiel)
+df['overall_squared'] = df['overall'] ** 2
+
+# 2. On change les features pour utiliser le carré à la place de l'overall simple
+features = ['overall_squared', 'potential', 'age', 'position_score', 'nation_bonus', 'league_strength']
 X = df[features]
 y = df['value_eur']
 
