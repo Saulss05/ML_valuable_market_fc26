@@ -18,7 +18,7 @@ FROM players
 WHERE value_eur > 0;
 """
 df = pd.read_sql(query, engine)
-# 1. échelle de position (Score de 1 à 4)
+# 1. échelle de position (Score de 1 à 4) cette structure est appelée dictionnaire 
 position_weights = {
     'GK': 1.0, 'CB': 2.0, 'RB': 2.2, 'LB': 2.2, 'CDM': 2.8, 
     'CM': 3.0, 'CAM': 3.5, 'RW': 3.8, 'LW': 3.8, 'ST': 4.0
@@ -31,7 +31,7 @@ def get_pos_score(pos_str):
 
 df['position_score'] = df['player_positions'].apply(get_pos_score)
 
-# 2. Ton dictionnaire de Nations Premium
+# 2. Dictionnaire de Nations Premium
 nations_premium = {
     'England': 1.25, 'Spain': 1.20, 'Brazil': 1.15, 'France': 1.10, 'Argentina': 1.10
 }
