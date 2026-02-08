@@ -43,7 +43,7 @@ df['league_strength'] = 5 - df['league_level']
 
 # Sélection des colonnes finales pour l'IA
 df['overall_exp'] = np.exp(df['overall'] / 10)
-features = ['overall', 'potential', 'age', 'position_score', 'nation_bonus', 'league_strength']
+features = ['overall_exp', 'potential', 'age', 'position_score', 'nation_bonus', 'league_strength']
 X = df[features]
 y = df['value_eur']
 
