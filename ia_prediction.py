@@ -31,7 +31,7 @@ def get_pos_score(pos_str):
 
 df['position_score'] = df['player_positions'].apply(get_pos_score)
 
-# 2. Ton dictionnaire de Nations Premium
+# 2. dictionnaire de Nations Premium
 nations_premium = {
     'England': 1.25, 'Spain': 1.20, 'Brazil': 1.15, 'France': 1.10, 'Argentina': 1.10
 }
@@ -42,6 +42,7 @@ df['nation_bonus'] = df['nationality_name'].apply(lambda x: nations_premium.get(
 df['league_strength'] = 5 - df['league_level']
 
 # Sélection des colonnes finales pour l'IA
+df['overall_exp'] = np.exp(df['overall'] / 10)
 features = ['overall', 'potential', 'age', 'position_score', 'nation_bonus', 'league_strength']
 X = df[features]
 y = df['value_eur']
