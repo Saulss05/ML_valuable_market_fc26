@@ -58,7 +58,7 @@ top_leagues_prestige = (df[df['league_name'].isin(reliable_leagues)]
                         .index)
 
 df['league_group'] = df['league_name'].apply(lambda x: x if x in top_leagues_prestige else 'Other')
-# CORRECTION MATHÉMATIQUE : drop_first=True pour avoir un condition number inferieur a 100 et notre matrice X(transposé)X
+# # CORRECTION MATHÉMATIQUE : drop_first=True pour avoir un condition number inferieur a 100 et notre matrice X(transposé)X
 #est facilment inversible (avec X matrice de design)
 df_leagues_names = pd.get_dummies(df['league_group'], prefix='lg_name', drop_first=True)
 leagues_names_cols = list(df_leagues_names.columns)
