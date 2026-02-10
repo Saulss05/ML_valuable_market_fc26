@@ -76,7 +76,7 @@ y_pred_log = model.predict(X_test)
 score_r2 = r2_score(y_test, y_pred_log)
 y_test_real = np.exp(y_test)
 y_pred_real = np.exp(y_pred_log)
-
+#print(df['nationality_name'].unique())
 print("\n" + "="*40)
 print(f"-> PRÉCISION DU MODÈLE (R²) : {score_r2:.4f}") 
 print(f"-> ERREUR MOYENNE : {mean_absolute_error(y_test_real, y_pred_real):,.2f} €")
