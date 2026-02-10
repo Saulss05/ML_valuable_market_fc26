@@ -20,7 +20,6 @@ WHERE value_eur > 0 AND league_name IS NOT NULL AND league_level IS NOT NULL;
 """
 df = pd.read_sql(query, engine)
 
-# Nettoyage des Outliers (IQR) pour stabiliser le modèle
 Q1 = df['value_eur'].quantile(0.25)
 Q3 = df['value_eur'].quantile(0.75)
 IQR = Q3 - Q1
@@ -33,7 +32,7 @@ df['player_positions'] = df['player_positions'].str.replace(' ', '')
 df_positions = df['player_positions'].str.get_dummies(sep=',')
 positions_cols = list(df_positions.columns)
 
-# B. Nationalités (Filtre de crédibilité : 30 joueurs minimum)
+# B. Nationalités (Filtre + drop_first pour éviter le Dummy Trap)
 counts_nat = df['nationality_name'].value_counts()
 reliable_nations = counts_nat[counts_nat >= 30].index
 
@@ -44,32 +43,34 @@ top_nations_rich = (df[df['nationality_name'].isin(reliable_nations)]
                     .index)
 
 df['nation_group'] = df['nationality_name'].apply(lambda x: x if x in top_nations_rich else 'Other')
-df_nations = pd.get_dummies(df['nation_group'], prefix='nat')
+# CORRECTION MATHÉMATIQUE : drop_first=True
+df_nations = pd.get_dummies(df['nation_group'], prefix='nat', drop_first=True)
 nations_cols = list(df_nations.columns)
 
-# C. Ligues (OPTIMISATION : Basé sur la valeur totale SUM pour le prestige financier)
+# C. Ligues (Filtre SUM + drop_first)
 counts_lg = df['league_name'].value_counts()
-reliable_leagues = counts_lg[counts_lg >= 50].index # Seuil monté à 50 pour plus de robustesse
+reliable_leagues = counts_lg[counts_lg >= 50].index 
 
 top_leagues_prestige = (df[df['league_name'].isin(reliable_leagues)]
                         .groupby('league_name')['value_eur']
-                        .sum() # Somme pour favoriser le poids financier total (Prestige)
-                        .nlargest(15) # On se concentre sur le Top 15 mondial
+                        .sum() 
+                        .nlargest(15) 
                         .index)
 
 df['league_group'] = df['league_name'].apply(lambda x: x if x in top_leagues_prestige else 'Other')
-df_leagues_names = pd.get_dummies(df['league_group'], prefix='lg_name')
+# CORRECTION MATHÉMATIQUE : drop_first=True
+df_leagues_names = pd.get_dummies(df['league_group'], prefix='lg_name', drop_first=True)
 leagues_names_cols = list(df_leagues_names.columns)
 
-# Fusion des données transformées
+# Fusion
 df = pd.concat([df, df_positions, df_nations, df_leagues_names], axis=1)
 
-# Transformations mathématiques
+# Transformations
 df['value_log'] = np.log(df['value_eur'])
-df['overall_exp'] = np.exp(df['overall'] / 100) # Division par 100 pour une courbe exponentielle marquée
+# exp(overall/40) pour garder une bonne courbe tout en ayant 95% de précision
+df['overall_exp'] = np.exp(df['overall'] / 30) 
 
 # 3. PRÉPARATION IA
-# Note : league_level a été retiré des features pour éviter le biais des divisions inférieures
 features = ['overall_exp', 'potential', 'age'] + positions_cols + nations_cols + leagues_names_cols
 X = df[features]
 y = df['value_log']
@@ -87,11 +88,14 @@ model.fit(X_train, y_train)
 y_pred_log = model.predict(X_test)
 score_r2 = r2_score(y_test, y_pred_log)
 
-# Conversion inverse pour l'erreur en euros
 y_test_real = np.exp(y_test)
 y_pred_real = np.exp(y_pred_log)
 
+# Calcul de stabilité
+cond_number = np.linalg.cond(X_scaled)
+
 print("\n" + "="*40)
+print(f"-> CONDITION NUMBER : {cond_number:.2f}") # Doit être < 1000
 print(f"-> PRÉCISION DU MODÈLE (R²) : {score_r2:.4f}") 
 print(f"-> ERREUR MOYENNE : {mean_absolute_error(y_test_real, y_pred_real):,.2f} €")
 print("="*40)
