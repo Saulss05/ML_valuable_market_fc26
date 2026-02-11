@@ -104,3 +104,12 @@ print("="*40)
 print("\n--- TOP 20 DES VARIABLES LES PLUS INFLUENTES ---")
 coef_df = pd.DataFrame(model.coef_, features, columns=['Coefficient'])
 print(coef_df.sort_values(by='Coefficient', ascending=False).head(20))
+
+import joblib
+
+joblib.dump(model, "model.pkl")
+joblib.dump(scaler, "scaler.pkl")
+joblib.dump(features, "features.pkl")
+joblib.dump(positions_cols, "positions_cols.pkl")
+joblib.dump(nations_cols, "nations_cols.pkl")
+joblib.dump(leagues_names_cols, "leagues_names_cols.pkl")
