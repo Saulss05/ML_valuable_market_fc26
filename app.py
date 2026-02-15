@@ -5,6 +5,7 @@ import joblib
 
 #Chargement des données
 model=joblib.load("model.pkl")
+rf_model=joblib.load("rf_model.pkl")
 scaler=joblib.load("scaler.pkl")
 features=joblib.load("features.pkl")
 positions_cols=joblib.load("positions_cols.pkl")
@@ -56,9 +57,10 @@ if st.button("Prédire la valeur"):
 
     # Prediction log
     pred_log = model.predict(input_scaled)
-
+    pred_log_rf=rf_model.predict(input_scaled)
     # Retour valeur réelle
     pred_value = np.exp(pred_log)[0]
+    pred_value_rf = np.exp(pred_log_rf)[0]
 
-    st.success(f"Valeur estimée : {int(pred_value):,} €")
-
+    st.success(f"Valeur estimée linear resgression: {int(pred_value):,} €")
+    st.success(f"Valeur estimée random forest: {int(pred_value_rf):,} €")
