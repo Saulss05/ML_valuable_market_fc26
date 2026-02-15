@@ -3,10 +3,13 @@ import pandas as pd
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_percentage_error
+
 
 load_dotenv()
 url = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
@@ -23,7 +26,9 @@ df = pd.read_sql(query, engine)
 Q1 = df['value_eur'].quantile(0.25)
 Q3 = df['value_eur'].quantile(0.75)
 IQR = Q3 - Q1
-df = df[(df['value_eur'] >= Q1 - 1.5 * IQR) & (df['value_eur'] <= Q3 + 1.5 * IQR)].copy()
+#df = df[(df['value_eur'] >= Q1 - 1.5 * IQR) & (df['value_eur'] <= Q3 + 1.5 * IQR)].copy()
+mean=df["value_eur"].mean()
+median=df["value_eur"].median()
 
 # 2. FEATURE ENGINEERING
 
@@ -82,32 +87,63 @@ X_scaled = scaler.fit_transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
 # 4. ENTRAÎNEMENT
+# LINEAR REGRESSION
 model = LinearRegression()
 model.fit(X_train, y_train)
 
+# RANDOM FOREST
+rf_model = RandomForestRegressor(
+    n_estimators=200,      # nombre d'arbres
+    max_depth=15,           # profondeur max de chaque arbre (évite overfitting)
+    random_state=42,
+    n_jobs=-1               # utilise tous les coeurs CPU
+)
+rf_model.fit(X_train, y_train)
+
 # 5. RÉSULTATS
+# LINEAR REGRESSION
 y_pred_log = model.predict(X_test)
 score_r2 = r2_score(y_test, y_pred_log)
 
 y_test_real = np.exp(y_test)
 y_pred_real = np.exp(y_pred_log)
 
+# RANDOM FOREST
+y_pred_log_rf = rf_model.predict(X_test)
+score_r2_rf = r2_score(y_test, y_pred_log_rf)
+
+y_test_real = np.exp(y_test)
+y_pred_real_rf = np.exp(y_pred_log_rf)
 # Calcul de stabilité
 cond_number = np.linalg.cond(X_scaled)
 
 print("\n" + "="*40)
+print("LINEAR REGRESSION")
 print(f"-> CONDITION NUMBER : {cond_number:.2f}") # Doit être < 1000
 print(f"-> PRÉCISION DU MODÈLE (R²) : {score_r2:.4f}") 
 print(f"-> ERREUR MOYENNE : {mean_absolute_error(y_test_real, y_pred_real):,.2f} €")
+print(f"-> MOYENNE : {df["value_eur"].mean():,.2f} €")
+print(f"-> Erreur/Moyenne : {mean_absolute_error(y_test_real, y_pred_real)/df["value_eur"].mean():,.2f} ")
 print("="*40)
 
 print("\n--- TOP 20 DES VARIABLES LES PLUS INFLUENTES ---")
 coef_df = pd.DataFrame(model.coef_, features, columns=['Coefficient'])
 print(coef_df.sort_values(by='Coefficient', ascending=False).head(20))
 
+print("\n" + "="*40)
+print("RANDOM FOREST")
+print(f"-> CONDITION NUMBER : {cond_number:.2f}") # Doit être < 1000
+print(f"-> PRÉCISION DU MODÈLE (R²) : {score_r2_rf:.4f}") 
+print(f"-> ERREUR MOYENNE : {mean_absolute_error(y_test_real, y_pred_real_rf):,.2f} €")
+print(f"-> MOYENNE : {df["value_eur"].mean():,.2f} €")
+print(f"-> Erreur/Moyenne : {mean_absolute_error(y_test_real, y_pred_real_rf)/df["value_eur"].mean():,.2f} ")
+print("="*40)
+
+
 import joblib
 
 joblib.dump(model, "model.pkl")
+joblib.dump(rf_model, "rf_model.pkl")
 joblib.dump(scaler, "scaler.pkl")
 joblib.dump(features, "features.pkl")
 joblib.dump(positions_cols, "positions_cols.pkl")
